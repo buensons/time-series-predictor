@@ -6,13 +6,14 @@
 #include <stdio.h>
 
 __global__ void calculate_fitness(
-    float * population,
+    float * dataWeights,
+    float * mapWeights,
     float * data,
-    float * fitness, 
+    float * fitness,
+    float * mapInput,
     int window_size,
     int node_number, 
     int population_size, 
-    int data_size, 
-    int stride
+    int data_size
 );
 #endif

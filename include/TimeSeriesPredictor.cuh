@@ -30,9 +30,11 @@ private:
     float k;
     std::vector<float> data;
     std::vector<Chromosome> population;
-    float *populationGpu;
     float *dataGpu;
     float *fitnessGpu, *fitnessHost;
+    float *dataWeightsGpu;
+    float *mapWeightsGpu;
+    float *mapInputGpu;
     int numberOfNodes;
     int populationSize;
     int windowSize;
