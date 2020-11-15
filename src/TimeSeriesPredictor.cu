@@ -8,13 +8,36 @@ TimeSeriesPredictor::TimeSeriesPredictor(std::vector<float> data, int numberOfNo
     this->k = 5.0;
 }
 
+TimeSeriesPredictor::~TimeSeriesPredictor() {
+    gpuErrchk(cudaFree(this->fitnessGpu));
+    gpuErrchk(cudaFree(this->populationGpu));
+    gpuErrchk(cudaFree(this->dataGpu));
+    free(this->fitnessHost);
+}
+
+auto TimeSeriesPredictor::prepareGpuMemory() -> void {
+    gpuErrchk(cudaMalloc((void**)&this->populationGpu, this->populationSize * this->population[0].genes.size() * sizeof(float)));
+    gpuErrchk(cudaMalloc((void**)&this->dataGpu, this->data.size() * sizeof(float)));
+    gpuErrchk(cudaMalloc((void**)&this->fitnessGpu, this->populationSize * sizeof(float)));
+    if((this->fitnessHost = (float *)malloc(this->populationSize * sizeof(float))) == NULL) {
+        std::cerr << "malloc\n";
+    }
+
+    int stride = this->population[0].genes.size();
+    for(int i = 0; i < this->populationSize; ++i) {
+        gpuErrchk(cudaMemcpy(&this->populationGpu[i * stride], this->population[i].genes.data(), this->population[i].genes.size() * sizeof(float), cudaMemcpyHostToDevice));
+    }
+    gpuErrchk(cudaMemcpy(this->dataGpu, this->data.data(), this->data.size() * sizeof(float), cudaMemcpyHostToDevice));
+}
+
 auto TimeSeriesPredictor::train() -> std::vector<float> {
     this->generatePopulation();
+    this->prepareGpuMemory();
     int generation = 0;
 
     while(true) {
         std::vector<Chromosome> nextGen;
-        prepareAndLaunchCudaKernel();
+        this->launchCudaKernel();
         Chromosome bestCandidate = this->maxFitness(this->population);
 
         if(generation == 500 || abs(1.0 - bestCandidate.fitness) < 1e-5) break;
@@ -73,7 +96,7 @@ auto TimeSeriesPredictor::mutate(Chromosome chr) -> Chromosome {
     return chr;
 }
 
-void TimeSeriesPredictor::generatePopulation() {
+auto TimeSeriesPredictor::generatePopulation() -> void {
     int n = this->numberOfNodes;
 
     for(int i = 0; i < this->populationSize; ++i) {
@@ -101,32 +124,11 @@ auto TimeSeriesPredictor::randomSampleFromPopulation(int size) -> std::vector<Ch
     return result;
 }
 
-void TimeSeriesPredictor::prepareAndLaunchCudaKernel() {
-    float *populationGpu;
-    float *dataGpu, *dataHost;
-    float *fitnessGpu, *fitnessHost;
-
+auto TimeSeriesPredictor::launchCudaKernel() -> void {
     int dataSize = this->data.size();
     int stride = this->population[0].genes.size();
     int w = this->windowSize;
     int n = this->numberOfNodes;
-
-    gpuErrchk(cudaMalloc((void**)&populationGpu, this->populationSize * this->population[0].genes.size() * sizeof(float)));
-
-    for(int i = 0; i < this->populationSize; ++i) {
-        gpuErrchk(cudaMemcpy(&populationGpu[i * stride], this->population[i].genes.data(), this->population[i].genes.size() * sizeof(float), cudaMemcpyHostToDevice));
-    }
-        
-    if((dataHost = (float *)malloc(this->data.size() * sizeof(float))) == NULL) {
-        std::cerr << "malloc\n";
-    }
-    gpuErrchk(cudaMalloc((void**)&dataGpu, this->data.size() * sizeof(float)));
-
-    if((fitnessHost = (float *)malloc(this->populationSize * sizeof(float))) == NULL) {
-        std::cerr << "malloc\n";
-    }
-    gpuErrchk(cudaMalloc((void**)&fitnessGpu, this->populationSize * sizeof(float)));
-    gpuErrchk(cudaMemcpy(dataGpu, this->data.data(), this->data.size() * sizeof(float), cudaMemcpyHostToDevice));
     
     calculate_fitness<<<4, 512>>>(populationGpu, dataGpu, fitnessGpu, w, n, this->populationSize, dataSize, stride);
     gpuErrchk(cudaPeekAtLastError());
@@ -137,11 +139,4 @@ void TimeSeriesPredictor::prepareAndLaunchCudaKernel() {
     for(int i = 0; i < this->populationSize; ++i) {
         this->population[i].fitness = fitnessHost[i];
     }
-
-    gpuErrchk(cudaFree(fitnessGpu));
-    gpuErrchk(cudaFree(populationGpu));
-    gpuErrchk(cudaFree(dataGpu));
-
-    free(fitnessHost);
-    free(dataHost);
 }

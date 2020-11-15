@@ -23,12 +23,16 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 class TimeSeriesPredictor {
 public:
     TimeSeriesPredictor(std::vector<float> data, int numberOfNodes, int populationSize, int windowSize);
+    ~TimeSeriesPredictor();
     auto train() -> std::vector<float>;
 
 private:
     float k;
     std::vector<float> data;
     std::vector<Chromosome> population;
+    float *populationGpu;
+    float *dataGpu;
+    float *fitnessGpu, *fitnessHost;
     int numberOfNodes;
     int populationSize;
     int windowSize;
@@ -39,9 +43,10 @@ private:
     auto crossover(Chromosome chr1, Chromosome chr2) -> std::vector<Chromosome>;
     auto mutate(Chromosome chr) -> Chromosome;
 
-    void generatePopulation();
+    auto generatePopulation() -> void;
     auto tournamentSelection() -> std::vector<Chromosome>;
     auto randomSampleFromPopulation(int size) -> std::vector<Chromosome>;
-    void prepareAndLaunchCudaKernel();
+    auto launchCudaKernel() -> void;
+    auto prepareGpuMemory() -> void;
 };
 #endif
