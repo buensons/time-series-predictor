@@ -6,10 +6,12 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <algorithm>
 
 #include "include/TimeSeriesPredictor.cuh"
 
 auto readDataToMemory() -> std::vector<float>;
+auto normalizeData(std::vector<float> &data) -> void;
 auto usage(char * arg) -> void;
 
 int main(int argc, char ** argv) {
@@ -29,7 +31,9 @@ int main(int argc, char ** argv) {
         return 1;
     }
 
+    std::cout << "Reading input data...\n";
     auto timeSeries = readDataToMemory();
+    normalizeData(timeSeries);
 
     TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize);
     std::vector<float> weights = predictor.train();
@@ -38,6 +42,16 @@ int main(int argc, char ** argv) {
 
 auto usage(char * arg) -> void {
     std::cerr << "Usage: " << arg << " <num_of_nodes> <population_size> <window_size>" << std::endl;
+}
+
+auto normalizeData(std::vector<float> &data) -> void {
+    const auto [a, b] = std::minmax_element(begin(data), end(data));
+    float min = *a;
+    float max = *b;
+
+    for(int i = 0; i < data.size(); ++i) {
+        data[i] = (data[i] - min) / (max - min);
+    }
 }
 
 auto readDataToMemory() -> std::vector<float> {

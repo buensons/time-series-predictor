@@ -18,15 +18,17 @@ __global__ void calculate_fitness(
     int i = 0; 
 
     while(i < data_size - window_size * node_number) {
-
+        // data aggregation
         for(int j = 0; j < window_size * node_number; ++j) {
             mapInput[j % node_number + index * node_number] += dataWeights[j + window_size * node_number * index] * data[i + j];
         }
 
+        // squashing function for map input
         for(int j = 0; j < node_number; ++j) {
             mapInput[j + index * node_number] = 1.0 / (1.0 + expf(-5 * mapInput[j + index * node_number]));
         }
         
+        // one step of cognitive map computation for each node
         for(int j = 0; j < node_number; ++j) {
 
             float x = 0.0f;
@@ -35,7 +37,7 @@ __global__ void calculate_fitness(
             }
 
             float y = 1.0 / (1.0 + expf(-5 * x));
-            float prediction_error = abs(y - data[j+i+1]);
+            float prediction_error = abs(y - data[window_size * node_number + i + j]);
             cumulative_error += prediction_error;
         }
         i += node_number;

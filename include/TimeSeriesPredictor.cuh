@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 #include <random>
+#include <chrono>
 #include <cuda.h>
 #include <cuda_runtime.h>
 
@@ -39,6 +40,7 @@ private:
     int numberOfNodes;
     int populationSize;
    	int windowSize;
+    float currentMean;
 	std::mt19937 mt;
     std::uniform_real_distribution<float> distribution;
 

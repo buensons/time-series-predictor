@@ -1,5 +1,5 @@
 #include "../include/TimeSeriesPredictor.cuh"
-#include <chrono>
+
 TimeSeriesPredictor::TimeSeriesPredictor(std::vector<float> data, int numberOfNodes, int populationSize, int windowSize) :  distribution(0.0, 1.0)  {
     this->data = data;
 	std::random_device rd;
@@ -8,6 +8,7 @@ TimeSeriesPredictor::TimeSeriesPredictor(std::vector<float> data, int numberOfNo
     this->populationSize = populationSize;
     this->windowSize = windowSize;
     this->k = 5.0;
+    this->currentMean = 0;
 }
 
 TimeSeriesPredictor::~TimeSeriesPredictor() {
@@ -33,18 +34,25 @@ auto TimeSeriesPredictor::prepareGpuMemory() -> void {
 }
 
 auto TimeSeriesPredictor::train() -> std::vector<float> {
-    this->generatePopulation();
-	this->prepareGpuMemory();
     int generation = 0;
+    Chromosome bestCandidate, previousBestCandidate;
+    previousBestCandidate.fitness = 0.0f;
 
+    std::cout << "Generating initial population...\n";
+    this->generatePopulation();
+    this->prepareGpuMemory();
+    
+    std::cout << "Training started...\n";
     while(true) {
         std::vector<Chromosome> nextGen;
         this->launchCudaKernel();
-        Chromosome bestCandidate = this->maxFitness(this->population);
-        if(generation == 500 || abs(1.0 - bestCandidate.fitness) < 1e-5) break;
+        bestCandidate = this->maxFitness(this->population);
 
         std::cout << "-----GEN " << generation << " -------" << std::endl;
         std::cout << "Best fitness: " << bestCandidate.fitness << std::endl;
+        std::cout << "Mean fitness: " << this->currentMean << std::endl;
+
+        if(generation == 100 || abs(1.0 - bestCandidate.fitness) < 1e-4) break;
         
         while(nextGen.size() < this->populationSize) {
             auto parents = this->tournamentSelection();
@@ -58,10 +66,12 @@ auto TimeSeriesPredictor::train() -> std::vector<float> {
             	nextGen.push_back(this->mutate(parents[0]));
             }
         }
-    	this->population = nextGen;
+        this->population = nextGen;
+        previousBestCandidate = bestCandidate;
      	++generation;
     }
-    return this->maxFitness(this->population).genes;
+    // return this->maxFitness(this->population).genes;
+    return bestCandidate.genes;
 }
 
 auto TimeSeriesPredictor::printPopulation() -> void {
@@ -79,7 +89,7 @@ auto TimeSeriesPredictor::maxFitness(std::vector<Chromosome> population) -> Chro
     float maxFitness = -1.0;
     Chromosome max;
 
-    for(auto chr: this->population) {
+    for(auto chr: population) {
 	    if(chr.fitness > maxFitness) {
             maxFitness = chr.fitness;
             max = chr;
@@ -101,7 +111,7 @@ auto TimeSeriesPredictor::crossover(Chromosome chr1, Chromosome chr2) -> std::ve
 
 auto TimeSeriesPredictor::mutate(Chromosome chr) -> Chromosome {
     for(int i = 0; i < chr.genes.size(); ++i) {
-        if(this->distribution(mt) < 0.18) {
+        if(this->distribution(mt) < 0.1) {
             chr.genes[i] = distribution(mt) * 2 - 1;
         }
     }
@@ -146,7 +156,6 @@ auto TimeSeriesPredictor::randomSampleFromPopulation(int size) -> std::vector<Ch
 }
 
 auto TimeSeriesPredictor::launchCudaKernel() -> void {
-    int dataSize = this->data.size();
     int w = this->windowSize;
     int n = this->numberOfNodes;
 
@@ -156,20 +165,30 @@ auto TimeSeriesPredictor::launchCudaKernel() -> void {
         gpuErrchk(cudaMemcpy(&this->mapWeightsGpu[i * n * n], &weights[w * n], n * n * sizeof(float), cudaMemcpyHostToDevice));
     }
 
-    gpuErrchk(cudaMemset(this->mapInputGpu, 0, n * sizeof(float)));
+    gpuErrchk(cudaMemset(this->mapInputGpu, 0, this->populationSize * n * sizeof(float)));
 
-    calculate_fitness<<<4, 512>>>(this->dataWeightsGpu, this->mapWeightsGpu, this->dataGpu, this->fitnessGpu, this->mapInputGpu, w, n, this->populationSize, dataSize);
+    calculate_fitness<<<4, 512>>>(
+        this->dataWeightsGpu, 
+        this->mapWeightsGpu, 
+        this->dataGpu, 
+        this->fitnessGpu, 
+        this->mapInputGpu,
+        w, 
+        n, 
+        this->populationSize, 
+        this->data.size()
+    );
+
     gpuErrchk(cudaPeekAtLastError());
     gpuErrchk(cudaDeviceSynchronize());
-
     gpuErrchk(cudaMemcpy(fitnessHost, fitnessGpu, this->populationSize * sizeof(float), cudaMemcpyDeviceToHost));
     
  	auto sum = 0.0;
-	auto ehh = 0;	
+	auto count = 0;	
     for(int i = 0; i < this->populationSize; ++i) {
 		sum += fitnessHost[i];
-		++ehh;
+		++count;
         this->population[i].fitness = fitnessHost[i];
     }
-	printf("The mean is %f \n", sum / ehh);
+    this->currentMean = sum / count;
 }
