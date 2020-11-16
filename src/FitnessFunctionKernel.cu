@@ -50,6 +50,4 @@ __global__ void calculate_fitness(
 
     float epsilon = cumulative_error / ((node_number * data_size) - (node_number * window_size));
     fitness[index] = 1.0 / (1.0 + epsilon);
-
-    printf("Fitness: %f, index: %d\n", fitness[index], index);
 }

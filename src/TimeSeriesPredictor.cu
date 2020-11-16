@@ -101,7 +101,7 @@ auto TimeSeriesPredictor::crossover(Chromosome chr1, Chromosome chr2) -> std::ve
 
 auto TimeSeriesPredictor::mutate(Chromosome chr) -> Chromosome {
     for(int i = 0; i < chr.genes.size(); ++i) {
-        if(this->distribution(mt) < 0.08) {
+        if(this->distribution(mt) < 0.18) {
             chr.genes[i] = distribution(mt) * 2 - 1;
         }
     }
@@ -152,8 +152,8 @@ auto TimeSeriesPredictor::launchCudaKernel() -> void {
 
     for(int i = 0; i < this->populationSize; ++i) {
         float * weights = this->population[i].genes.data();
-        gpuErrchk(cudaMemcpy(&this->dataWeightsGpu[i], weights, w * n * sizeof(float), cudaMemcpyHostToDevice));
-        gpuErrchk(cudaMemcpy(&this->mapWeightsGpu[i], &weights[w * n], n * n * sizeof(float), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(&this->dataWeightsGpu[i * w * n], weights, w * n * sizeof(float), cudaMemcpyHostToDevice));
+        gpuErrchk(cudaMemcpy(&this->mapWeightsGpu[i * n * n], &weights[w * n], n * n * sizeof(float), cudaMemcpyHostToDevice));
     }
 
     cudaMemset(this->mapInputGpu, 0, n * sizeof(float));
@@ -163,8 +163,13 @@ auto TimeSeriesPredictor::launchCudaKernel() -> void {
     gpuErrchk(cudaDeviceSynchronize());
 
     gpuErrchk(cudaMemcpy(fitnessHost, fitnessGpu, this->populationSize * sizeof(float), cudaMemcpyDeviceToHost));
-       
+    
+ 	auto sum = 0.0;
+	auto ehh = 0;	
     for(int i = 0; i < this->populationSize; ++i) {
+		sum += fitnessHost[i];
+		++ehh;
         this->population[i].fitness = fitnessHost[i];
     }
+	printf("The mean is %f \n", sum / ehh);
 }
