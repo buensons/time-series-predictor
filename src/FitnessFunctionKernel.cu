@@ -23,11 +23,11 @@ __global__ void calculate_fitness(
 
         for(int j = 0; j < window_size * node_number; ++j) {
             // map_input[j % node_number] += data_weights[j] * input_data[j];
-            mapInput[j % node_number] += dataWeights[j] * data[i + j];
+            mapInput[j % node_number + index * node_number] += dataWeights[j + window_size * node_number * index] * data[i + j];
         }
 
         for(int j = 0; j < node_number; ++j) {
-            mapInput[j] = 1.0 / (1.0 + expf(-5 * mapInput[j]));
+            mapInput[j + index * node_number] = 1.0 / (1.0 + expf(-5 * mapInput[j + index * node_number]));
         }
         
         for(int j = 0; j < node_number; ++j) {
@@ -36,7 +36,7 @@ __global__ void calculate_fitness(
 
             float x = 0.0f;
             for(int k = 0; k < node_number; ++k) {
-                x += mapWeights[j * node_number + k] * mapInput[k];
+                x += mapWeights[j * node_number + k + node_number * node_number * index] * mapInput[k];
             }
 
             float y = 1.0 / (1.0 + expf(-5 * x));

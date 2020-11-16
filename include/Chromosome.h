@@ -12,7 +12,6 @@ public:
 
     Chromosome();
 
-    static auto random(int size) -> Chromosome;
     static auto fromWeights(std::vector<float> genes) -> Chromosome;
 };
 #endif

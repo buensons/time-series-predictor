@@ -1,7 +1,9 @@
 #include "../include/TimeSeriesPredictor.cuh"
-
-TimeSeriesPredictor::TimeSeriesPredictor(std::vector<float> data, int numberOfNodes, int populationSize, int windowSize) : distribution(0.0, 1.0) {
+#include <chrono>
+TimeSeriesPredictor::TimeSeriesPredictor(std::vector<float> data, int numberOfNodes, int populationSize, int windowSize) :  distribution(0.0, 1.0)  {
     this->data = data;
+	std::random_device rd;
+	mt = std::mt19937(rd());
     this->numberOfNodes = numberOfNodes;
     this->populationSize = populationSize;
     this->windowSize = windowSize;
@@ -22,7 +24,7 @@ auto TimeSeriesPredictor::prepareGpuMemory() -> void {
     gpuErrchk(cudaMalloc((void**)&this->fitnessGpu, this->populationSize * sizeof(float)));
     gpuErrchk(cudaMalloc((void**)&this->dataWeightsGpu, this->populationSize * this->windowSize * this->numberOfNodes * sizeof(float)));
     gpuErrchk(cudaMalloc((void**)&this->mapWeightsGpu, this->populationSize * this->numberOfNodes * this->numberOfNodes * sizeof(float)));
-    gpuErrchk(cudaMalloc((void**)&this->mapInputGpu, this->numberOfNodes * sizeof(float)));
+    gpuErrchk(cudaMalloc((void**)&this->mapInputGpu, this->populationSize * this->numberOfNodes * sizeof(float)));
 
     if((this->fitnessHost = (float *)malloc(this->populationSize * sizeof(float))) == NULL) {
         std::cerr << "malloc\n";
@@ -32,14 +34,13 @@ auto TimeSeriesPredictor::prepareGpuMemory() -> void {
 
 auto TimeSeriesPredictor::train() -> std::vector<float> {
     this->generatePopulation();
-    this->prepareGpuMemory();
+	this->prepareGpuMemory();
     int generation = 0;
 
     while(true) {
         std::vector<Chromosome> nextGen;
         this->launchCudaKernel();
         Chromosome bestCandidate = this->maxFitness(this->population);
-
         if(generation == 500 || abs(1.0 - bestCandidate.fitness) < 1e-5) break;
 
         std::cout << "-----GEN {generation}-------" << std::endl;
@@ -48,7 +49,7 @@ auto TimeSeriesPredictor::train() -> std::vector<float> {
         while(nextGen.size() < this->populationSize) {
             auto parents = this->tournamentSelection();
 
-            if(this->distribution(this->generator) < 0.5) {
+            if(this->distribution(mt) < 0.5) {
 		        auto children = this->crossover(parents[0], parents[1]);
 		        for(auto child: children) {
 			        nextGen.push_back(this->mutate(child));
@@ -63,12 +64,23 @@ auto TimeSeriesPredictor::train() -> std::vector<float> {
     return this->maxFitness(this->population).genes;
 }
 
+auto TimeSeriesPredictor::printPopulation() -> void {
+	for(auto& chr : this->population) {
+		printf("singular fitness: %f \n", chr.fitness);
+		printf("Genes: \n");
+		for(auto& gene : chr.genes) {
+			printf(" %f ", gene);	
+		}	
+		printf("\n");
+
+	}
+}
 auto TimeSeriesPredictor::maxFitness(std::vector<Chromosome> population) -> Chromosome {
     float maxFitness = -1.0;
     Chromosome max;
 
     for(auto chr: this->population) {
-        if(chr.fitness > maxFitness) {
+	    if(chr.fitness > maxFitness) {
             maxFitness = chr.fitness;
             max = chr;
         }
@@ -89,18 +101,27 @@ auto TimeSeriesPredictor::crossover(Chromosome chr1, Chromosome chr2) -> std::ve
 
 auto TimeSeriesPredictor::mutate(Chromosome chr) -> Chromosome {
     for(int i = 0; i < chr.genes.size(); ++i) {
-        if(this->distribution(this->generator) < 0.05) {
-            chr.genes[i] *= -1.0;
+        if(this->distribution(mt) < 0.08) {
+            chr.genes[i] = distribution(mt) * 2 - 1;
         }
     }
     return chr;
+}
+
+auto TimeSeriesPredictor::randomGenes(int size) -> Chromosome::Chromosome {
+	Chromosome chr;
+	for(auto i = 0; i < size; ++i){
+		chr.genes.push_back(this->distribution(mt) * 2 - 1);
+	}
+
+	return chr;
 }
 
 auto TimeSeriesPredictor::generatePopulation() -> void {
     int n = this->numberOfNodes;
 
     for(int i = 0; i < this->populationSize; ++i) {
-        this->population.push_back(Chromosome::random(pow(n, 2) + n * this->windowSize));
+        this->population.push_back(randomGenes(pow(n, 2) + n * this->windowSize));
     }
 }
 

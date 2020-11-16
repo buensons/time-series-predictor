@@ -2,6 +2,7 @@
 #define TIME_SERIES_PREDICTOR_CUH
 
 #include <iostream>
+#include <random>
 #include <vector>
 #include <random>
 #include <cuda.h>
@@ -37,11 +38,12 @@ private:
     float *mapInputGpu;
     int numberOfNodes;
     int populationSize;
-    int windowSize;
-    std::default_random_engine generator;
+   	int windowSize;
+	std::mt19937 mt;
     std::uniform_real_distribution<float> distribution;
 
     auto maxFitness(std::vector<Chromosome> population) -> Chromosome;
+	auto printPopulation() -> void;
     auto crossover(Chromosome chr1, Chromosome chr2) -> std::vector<Chromosome>;
     auto mutate(Chromosome chr) -> Chromosome;
 
@@ -50,5 +52,6 @@ private:
     auto randomSampleFromPopulation(int size) -> std::vector<Chromosome>;
     auto launchCudaKernel() -> void;
     auto prepareGpuMemory() -> void;
+	auto randomGenes(int size) -> Chromosome;
 };
 #endif
