@@ -10,22 +10,34 @@
 #include "include/TimeSeriesPredictor.cuh"
 
 auto readDataToMemory() -> std::vector<float>;
+auto usage(char * arg) -> void;
 
 int main(int argc, char ** argv) {
+    int nodes, populationSize, windowSize;
+
     if(argc != 4) {
-        std::cerr << "Usage: " << argv[0] << " <num_of_nodes> <population_size> <window_size>" << std::endl;
+        usage(argv[0]);
         return 1;
     }
 
-    int nodes = atoi(argv[1]);
-    int populationSize = atoi(argv[2]);
-    int windowSize = atoi(argv[3]);
+    try {
+        nodes = std::stoi(argv[1]);
+        populationSize = std::stoi(argv[2]);
+        windowSize = std::stoi(argv[3]);
+    } catch(std::exception const & e) {
+        usage(argv[0]);
+        return 1;
+    }
 
     auto timeSeries = readDataToMemory();
 
     TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize);
     std::vector<float> weights = predictor.train();
     return 0;
+}
+
+auto usage(char * arg) -> void {
+    std::cerr << "Usage: " << arg << " <num_of_nodes> <population_size> <window_size>" << std::endl;
 }
 
 auto readDataToMemory() -> std::vector<float> {

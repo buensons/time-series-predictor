@@ -43,7 +43,7 @@ auto TimeSeriesPredictor::train() -> std::vector<float> {
         Chromosome bestCandidate = this->maxFitness(this->population);
         if(generation == 500 || abs(1.0 - bestCandidate.fitness) < 1e-5) break;
 
-        std::cout << "-----GEN {generation}-------" << std::endl;
+        std::cout << "-----GEN " << generation << " -------" << std::endl;
         std::cout << "Best fitness: " << bestCandidate.fitness << std::endl;
         
         while(nextGen.size() < this->populationSize) {
@@ -156,7 +156,7 @@ auto TimeSeriesPredictor::launchCudaKernel() -> void {
         gpuErrchk(cudaMemcpy(&this->mapWeightsGpu[i * n * n], &weights[w * n], n * n * sizeof(float), cudaMemcpyHostToDevice));
     }
 
-    cudaMemset(this->mapInputGpu, 0, n * sizeof(float));
+    gpuErrchk(cudaMemset(this->mapInputGpu, 0, n * sizeof(float)));
 
     calculate_fitness<<<4, 512>>>(this->dataWeightsGpu, this->mapWeightsGpu, this->dataGpu, this->fitnessGpu, this->mapInputGpu, w, n, this->populationSize, dataSize);
     gpuErrchk(cudaPeekAtLastError());
