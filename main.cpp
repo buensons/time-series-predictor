@@ -37,6 +37,10 @@ int main(int argc, char ** argv) {
 
     TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize);
     std::vector<float> weights = predictor.train();
+
+    // TODO: save the weights
+    // TODO: add predict() method and use test data
+
     return 0;
 }
 
