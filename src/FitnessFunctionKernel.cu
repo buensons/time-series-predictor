@@ -36,7 +36,7 @@ __global__ void calculate_fitness(
 
             float x = 0.0f;
             for(int k = 0; k < node_number; ++k) {
-                x += mapWeights[j * node_number + k + node_number * node_number * index] * mapInput[k];
+                x += mapWeights[j * node_number + k + node_number * node_number * index] * mapInput[k + index * node_number];
             }
 
             float y = 1.0 / (1.0 + expf(-5 * x));
