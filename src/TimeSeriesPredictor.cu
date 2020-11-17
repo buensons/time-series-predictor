@@ -52,7 +52,7 @@ auto TimeSeriesPredictor::train() -> std::vector<float> {
         std::cout << "Best fitness: " << bestCandidate.fitness << std::endl;
         std::cout << "Mean fitness: " << this->currentMean << std::endl;
 
-        if(generation == 100 || abs(1.0 - bestCandidate.fitness) < 1e-4) break;
+        if(generation == 25 || abs(1.0 - bestCandidate.fitness) < 1e-2) break;
         
         while(nextGen.size() < this->populationSize) {
             auto parents = this->tournamentSelection();

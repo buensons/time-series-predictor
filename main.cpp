@@ -7,10 +7,10 @@
 #include <string>
 #include <sstream>
 #include <algorithm>
-
+#include "include/ResultVerifier.hpp"
 #include "include/TimeSeriesPredictor.cuh"
 
-auto readDataToMemory() -> std::vector<float>;
+auto readDataToMemory(std::string dir) -> std::vector<float>;
 auto normalizeData(std::vector<float> &data) -> void;
 auto usage(char * arg) -> void;
 
@@ -32,15 +32,19 @@ int main(int argc, char ** argv) {
     }
 
     std::cout << "Reading input data...\n";
-    auto timeSeries = readDataToMemory();
+    auto timeSeries = readDataToMemory("./data/");
     normalizeData(timeSeries);
-
+	
     TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize);
     std::vector<float> weights = predictor.train();
 
-    // TODO: save the weights
-    // TODO: add predict() method and use test data
-
+	// Prediction on test data
+	printf("The result is: \n");
+	for(auto elem : weights) 
+		printf(" %f ", elem);	
+	auto testData = readDataToMemory("./test/");
+	normalizeData(testData);	
+	verifyResults(windowSize, nodes, weights, testData);
     return 0;
 }
 
@@ -58,8 +62,8 @@ auto normalizeData(std::vector<float> &data) -> void {
     }
 }
 
-auto readDataToMemory() -> std::vector<float> {
-    std::string dataFolder = "./data/";
+auto readDataToMemory(std::string dir) -> std::vector<float> {
+    std::string dataFolder = dir;
     std::vector<float> dataVector;
 
     namespace fs = std::filesystem;
