@@ -18,7 +18,7 @@ CC_LIBS=
 ## NVCC COMPILER OPTIONS ##
 
 NVCC=nvcc
-NVCC_FLAGS=--std c++17 -lineinfo -g -G
+NVCC_FLAGS=--std c++17 -lineinfo
 NVCC_LIBS=
 
 # CUDA library directory:

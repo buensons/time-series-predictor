@@ -32,20 +32,20 @@ int main(int argc, char ** argv) {
     }
 
     std::cout << "Reading input data...\n";
-    auto timeSeries = readDataToMemory("./data/");
+    auto timeSeries = readDataToMemory("data");
     normalizeData(timeSeries);
 	
     TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize);
     std::vector<float> weights = predictor.train();
 
 	// Prediction on test data
-	printf("The result is: \n");
-	for(auto elem : weights) 
-		printf(" %f ", elem);	
-	auto testData = readDataToMemory("./test/");
+	printf("FOR TRAIN DATA\n");
+	verifyResults(windowSize, nodes, weights, timeSeries);
+	printf("FOR TEST DATA\n");
+    auto testData = readDataToMemory("test");
 	normalizeData(testData);	
 	verifyResults(windowSize, nodes, weights, testData);
-    return 0;
+	return 0;
 }
 
 auto usage(char * arg) -> void {
@@ -68,7 +68,7 @@ auto readDataToMemory(std::string dir) -> std::vector<float> {
 
     namespace fs = std::filesystem;
 
-    for(auto itEntry = fs::recursive_directory_iterator(fs::current_path());
+    for(auto itEntry = fs::recursive_directory_iterator(fs::current_path() / dataFolder);
          itEntry != fs::recursive_directory_iterator(); 
          ++itEntry) {
 
