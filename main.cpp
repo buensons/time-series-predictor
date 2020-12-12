@@ -9,45 +9,65 @@
 #include <algorithm>
 
 #include "include/TimeSeriesPredictor.cuh"
+#include "include/TimeSeriesTester.h"
 
-auto readDataToMemory(std::string path) -> std::vector<float>;
+auto readDataToMemory(const std::string &path) -> std::vector<float>;
+void extractDataFromCsv(const std::string &path, std::vector<float> &data);
+void saveWeights(const std::vector<float> &weights);
 auto normalizeData(std::vector<float> &data) -> void;
 auto usage(char * arg) -> void;
 
 int main(int argc, char ** argv) {
     int nodes, populationSize, windowSize;
-    std::string dataPath;
+    std::string dataPath, mode, weightsFilePath;
+    std::vector<float> weights;
 
-    if(argc != 5) {
+    if(argc != 6) {
         usage(argv[0]);
         return 1;
     }
 
     try {
-        nodes = std::stoi(argv[1]);
-        populationSize = std::stoi(argv[2]);
+        mode = std::string(argv[1]);
+
+        if(mode != "test" && mode != "train") {
+            throw std::invalid_argument("Incorrect mode. Available options: test, train\n");
+        }
+        
+        nodes = std::stoi(argv[2]);
         windowSize = std::stoi(argv[3]);
         dataPath = std::string(argv[4]);
+
+        if(mode == "train") populationSize = std::stoi(argv[5]);
+        else weightsFilePath = std::string(argv[5]);
+
     } catch(std::exception const & e) {
         usage(argv[0]);
-        return 1;
+        throw e;
     }
 
     std::cout << "Reading input data from " << dataPath << std::endl;
     auto timeSeries = readDataToMemory(dataPath);
     normalizeData(timeSeries);
 
-    TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize);
-    std::vector<float> weights = predictor.train();
+    if(mode == "test") {
+        extractDataFromCsv(weightsFilePath, weights);
 
-    // TODO: save the weights
-    // TODO: add predict() method and use test data
+        TimeSeriesTester tester(timeSeries, weights, nodes, windowSize);
+        float result = tester.test();
+        std::cout << "Result on test data: " << result << std::endl;
+    } else {
+        TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize);
+        weights = predictor.train();
+        saveWeights(weights);
+    }
 
     return 0;
 }
 
 auto usage(char * arg) -> void {
-    std::cerr << "Usage: " << arg << " <num_of_nodes> <population_size> <window_size> <path_to_data>" << std::endl;
+    std::cerr << "Usage: " << arg << " (train | test) <num_of_nodes> <window_size> <path_to_data> "
+        << "(<population_size> | <weights_file_path>)" << std::endl;
 }
 
 auto normalizeData(std::vector<float> &data) -> void {
@@ -60,7 +80,7 @@ auto normalizeData(std::vector<float> &data) -> void {
     }
 }
 
-auto extractDataFromCsv(std::string path, std::vector<float> &dataVector) {
+void extractDataFromCsv(const std::string &path, std::vector<float> &data) {
     std::ifstream infile(path);
     std::string line;
 
@@ -70,13 +90,13 @@ auto extractDataFromCsv(std::string path, std::vector<float> &dataVector) {
         while(iss.good()){
             std::string substr;
             getline(iss, substr, ',');
-            dataVector.push_back(std::stof(substr));
+            data.push_back(std::stof(substr));
         }
     }
 }
 
-auto readDataToMemory(std::string path) -> std::vector<float> {
-    std::vector<float> dataVector;
+auto readDataToMemory(const std::string &path) -> std::vector<float> {
+    std::vector<float> data;
     
     size_t pos = path.rfind('.');
 
@@ -84,8 +104,8 @@ auto readDataToMemory(std::string path) -> std::vector<float> {
         std::string ext = path.substr(pos+1);
 
         if (ext == "csv") {
-            extractDataFromCsv(path, dataVector);
-            return dataVector;
+            extractDataFromCsv(path, data);
+            return data;
         }
     }
 
@@ -93,9 +113,22 @@ auto readDataToMemory(std::string path) -> std::vector<float> {
         const auto extension = p.path().extension();
 
         if(extension == ".csv") {
-            extractDataFromCsv(p.path().string(), dataVector);
+            extractDataFromCsv(p.path().string(), data);
         }
     }
 
-    return dataVector; 
+    return data; 
+}
+
+void saveWeights(const std::vector<float> &weights) {
+    std::ofstream file;
+    file.open ("./weights.csv");
+    
+    for(auto weight: weights) {
+        file << weight << std::endl;
+    }
+
+    file.close();
+
+    std::cout << "Weights saved to weights.csv file" << std::endl;
 }

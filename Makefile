@@ -49,7 +49,7 @@ INC_DIR = include
 EXE = predictor
 
 # Object files:
-OBJS = $(OBJ_DIR)/main.o $(OBJ_DIR)/Chromosome.o $(OBJ_DIR)/TimeSeriesPredictor.o $(OBJ_DIR)/FitnessFunctionKernel.o
+OBJS = $(OBJ_DIR)/main.o $(OBJ_DIR)/Chromosome.o $(OBJ_DIR)/TimeSeriesPredictor.o $(OBJ_DIR)/FitnessFunctionKernel.o $(OBJ_DIR)/TimeSeriesTester.o
 
 ##########################################################
 
