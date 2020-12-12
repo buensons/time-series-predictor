@@ -85,6 +85,7 @@ auto TimeSeriesPredictor::printPopulation() -> void {
 
 	}
 }
+
 auto TimeSeriesPredictor::maxFitness(std::vector<Chromosome> population) -> Chromosome {
     float maxFitness = -1.0;
     Chromosome max;

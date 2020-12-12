@@ -38,6 +38,9 @@ __global__ void calculate_fitness(
 
             float y = 1.0 / (1.0 + expf(-5 * x));
             float prediction_error = abs(y - data[window_size * node_number + i + j]);
+
+            // TODO: experiment with percentage error
+            // TODO: experiment with max percentage error
             cumulative_error += prediction_error;
         }
         i += node_number;
