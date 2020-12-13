@@ -14,20 +14,20 @@ def main(data_path: str):
         "nine": ["4", "1", "512", "0.1", "0.7"]
     }
 
-    exec_train = "./predictor train 3 {window_size} {path} {fit} {population} {mut} {cross} {output}"
-    exec_test = "./predictor test 3 {window_size} {path} {fit} {weights} {output}"
+    exec_train = "./predictor train {window_size} {path} {fit} {population} {mut} {cross} {output}"
+    exec_test = "./predictor test {window_size} {path} {fit} {weights} {output}"
 
-    for c in range(1,9):
+    for c in range(1,2):
         for k,v in configurations.items():
             os.system(
                 exec_train.format(
                     window_size=v[0],
-                    path=data_path,
+                    path=data_path + "/" + str(c),
                     fit=v[1],
                     population=v[2],
                     mut=v[3],
                     cross=v[4],
-                    output="{c}_{k}.csv"
+                    output=f"{c}_{k}"
                 )
             )
 
@@ -36,10 +36,10 @@ def main(data_path: str):
             os.system(
                 exec_test.format(
                     window_size=v[0],
-                    path=data_path,
+                    path=data_path + "/" + str(c),
                     fit=v[1],
-                    weights="{c}_{k}.csv"
-                    output=f"{c}_{k}_results"
+                    weights=f"{c}_{k}",
+                    output=f"{c}_{k}"
                 )
             )
 
@@ -47,4 +47,4 @@ if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Arguments missing")
     
-    main(argv[1])
+    main(sys.argv[1])
