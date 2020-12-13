@@ -20,7 +20,7 @@ auto TimeSeriesTester::test(std::ofstream &file) -> float {
     int count = 0;
     float rmseScore = 0.0f;
     std::vector<float> mapInput(this->numberOfNodes, 0.0);
-
+    std::cout << "Testing started " << std::endl;
     while(i < data.size() - windowSize * numberOfNodes) {
 
         // data aggregation

@@ -155,7 +155,7 @@ auto TimeSeriesPredictor::randomSampleFromPopulation(int size) -> std::vector<Ch
     std::vector<Chromosome> result;
 
     for(int i = 0; i < size; ++i) {
-        int r = rand() % this->populationSize;
+        int r = distribution(mt) * this->populationSize;
         result.push_back(this->population[r]);
     }
     return result;

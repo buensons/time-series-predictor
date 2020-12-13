@@ -83,7 +83,7 @@ int main(int argc, char ** argv) {
     auto timeSeries = readDataToMemory(dataPath);
     normalizeData(timeSeries);
     std::ofstream file;
-    file.open (outFilename + ".results");
+    file.open (outFilename + ".results", std::fstream::app);
     if(mode == "test") {
         extractDataFromCsv(weightsFilePath, weights);
         file << "======================Testing phase results: ============================\n" << std::endl;
@@ -95,6 +95,7 @@ int main(int argc, char ** argv) {
         auto start = std::chrono::high_resolution_clock::now(); 
         TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize, fitnessMode, pMutation, pCrossover);
         weights = predictor.train(file);
+        std::cout <<"All good " << std::endl;
         auto stop = std::chrono::high_resolution_clock::now(); 
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         file << "Training time: " << duration.count() << std::endl;
