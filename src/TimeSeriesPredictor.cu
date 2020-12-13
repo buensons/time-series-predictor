@@ -145,7 +145,7 @@ auto TimeSeriesPredictor::tournamentSelection() -> std::vector<Chromosome> {
     std::vector<Chromosome> result;
     
     for(int i = 0; i < 2; ++i) {
-        auto tournamentPopulation = this->randomSampleFromPopulation(5);
+        auto tournamentPopulation = this->randomSampleFromPopulation(20);
         result.push_back(this->maxFitness(tournamentPopulation));
     }
     return result;

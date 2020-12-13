@@ -17,7 +17,7 @@ def main(data_path: str):
     exec_train = "./predictor train {window_size} {path} {fit} {population} {mut} {cross} {output}"
     exec_test = "./predictor test {window_size} {path} {fit} {weights} {output}"
 
-    for c in range(1,1):
+    for c in range(1,2):
         for k,v in configurations.items():
             os.system(
                 exec_train.format(
@@ -31,14 +31,14 @@ def main(data_path: str):
                 )
             )
 
-    for c in range(1,9):
+    for c in range(1,2):
         for k,v in configurations.items():
             os.system(
                 exec_test.format(
                     window_size=v[0],
                     path=data_path + "/" + str(c),
                     fit=v[1],
-                    weights=f"{c}_{k}",
+                    weights=f"{c}_{k}.weights",
                     output=f"{c}_{k}"
                 )
             )

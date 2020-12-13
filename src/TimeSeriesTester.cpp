@@ -58,7 +58,7 @@ auto TimeSeriesTester::test(std::ofstream &file) -> float {
         i += numberOfNodes;
     }
 
-    float epsilon = (this->fitnessMode == 2) ? cumulativeError : cumulativeError / count;
+    float epsilon = (this->fitnessMode == 2) ? cumulativeError : cumulativeError /((numberOfNodes * data.size()) - (numberOfNodes * windowSize));
     file << std::string("Testing result: ") << 1.0f / (1.0f + epsilon) << std::endl;
     file << std::string("RMSE result: ") << std::sqrt(rmseScore / count) << std::endl;
     return 1.0 / (1.0 + epsilon);
