@@ -1,12 +1,15 @@
 #include "../include/TimeSeriesPredictor.cuh"
 
-TimeSeriesPredictor::TimeSeriesPredictor(std::vector<float> data, int numberOfNodes, int populationSize, int windowSize) :  distribution(0.0, 1.0)  {
+TimeSeriesPredictor::TimeSeriesPredictor(std::vector<float> data, int numberOfNodes, int populationSize, int windowSize, int fitnessMode, float pMutation, float pCrossover) :  distribution(0.0, 1.0)  {
     this->data = data;
 	std::random_device rd;
 	mt = std::mt19937(rd());
     this->numberOfNodes = numberOfNodes;
     this->populationSize = populationSize;
     this->windowSize = windowSize;
+    this->fitnessMode = fitnessMode;
+    this->pMutation = pMutation;
+    this->pCrossover = pCrossover;
     this->k = 5.0;
     this->currentMean = 0;
 }
@@ -31,7 +34,7 @@ auto TimeSeriesPredictor::prepareGpuMemory() -> void {
     gpuErrchk(cudaMemcpy(this->dataGpu, this->data.data(), this->data.size() * sizeof(float), cudaMemcpyHostToDevice));
 }
 
-auto TimeSeriesPredictor::train() -> std::vector<float> {
+auto TimeSeriesPredictor::train(std::ofstream &file) -> std::vector<float> {
     int generation = 0;
     Chromosome bestCandidate, previousBestCandidate;
     previousBestCandidate.fitness = 0.0f;
@@ -50,12 +53,16 @@ auto TimeSeriesPredictor::train() -> std::vector<float> {
         std::cout << "Best fitness: " << bestCandidate.fitness << std::endl;
         std::cout << "Mean fitness: " << this->currentMean << std::endl;
 
-        if(generation == 100 || abs(1.0 - bestCandidate.fitness) < 1e-4) break;
+        if(generation == 100 || abs(1.0 - bestCandidate.fitness) < 1e-4)  {
+            file << "Best fitness for training: " << bestCandidate.fitness << std::endl;
+            file << "Mean fitness for training: " << this->currentMean << std::endl;
+            break;
+        }
         
         while(nextGen.size() < this->populationSize) {
             auto parents = this->tournamentSelection();
 
-            if(this->distribution(mt) < 0.5) {
+            if(this->distribution(mt) < this->pCrossover) {
 		        auto children = this->crossover(parents[0], parents[1]);
 		        for(auto child: children) {
 			        nextGen.push_back(this->mutate(child));
@@ -110,7 +117,7 @@ auto TimeSeriesPredictor::crossover(Chromosome chr1, Chromosome chr2) -> std::ve
 
 auto TimeSeriesPredictor::mutate(Chromosome chr) -> Chromosome {
     for(int i = 0; i < chr.genes.size(); ++i) {
-        if(this->distribution(mt) < 0.1) {
+        if(this->distribution(mt) < this->pCrossover) {
             chr.genes[i] = distribution(mt) * 2 - 1;
         }
     }
@@ -175,7 +182,8 @@ auto TimeSeriesPredictor::launchCudaKernel() -> void {
         w, 
         n, 
         this->populationSize, 
-        this->data.size()
+        this->data.size(),
+        this->fitnessMode
     );
 
     gpuErrchk(cudaPeekAtLastError());

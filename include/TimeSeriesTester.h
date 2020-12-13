@@ -1,11 +1,12 @@
 #include <vector>
 #include <cmath>
+#include <string>
 
 class TimeSeriesTester {
 public:
-    TimeSeriesTester(std::vector<float> data, std::vector<float> weights, int nodes, int windowSize);
+    TimeSeriesTester(std::vector<float> data, std::vector<float> weights, int nodes, int windowSize, int fitnessMode, std::string outFilename);
 
-    auto test() -> float;
+    auto test(std::ofstream &file) -> float;
 
 private:
     std::vector<float> data;
@@ -14,4 +15,6 @@ private:
 
     int numberOfNodes;
     int windowSize;
+    int fitnessMode;
+    std::string outFilename;
 };

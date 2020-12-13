@@ -5,6 +5,7 @@
 #include <random>
 #include <vector>
 #include <random>
+#include <fstream>
 #include <chrono>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -24,9 +25,9 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 class TimeSeriesPredictor {
 public:
-    TimeSeriesPredictor(std::vector<float> data, int numberOfNodes, int populationSize, int windowSize);
+    TimeSeriesPredictor(std::vector<float> data, int numberOfNodes, int populationSize, int windowSize, int fitnessMode, float pMutation, float pCrossover);
     ~TimeSeriesPredictor();
-    auto train() -> std::vector<float>;
+    auto train(std::ofstream &file) -> std::vector<float>;
 
 private:
     float k;
@@ -38,6 +39,10 @@ private:
     float *mapWeightsGpu;
     float *mapInputGpu;
     int numberOfNodes;
+    int fitnessMode;
+    float pMutation;
+    float pCrossover;
+    std::string outFilename;
     int populationSize;
    	int windowSize;
     float currentMean;

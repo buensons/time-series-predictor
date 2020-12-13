@@ -14,6 +14,7 @@ __global__ void calculate_fitness(
     int window_size,
     int node_number, 
     int population_size, 
-    int data_size
+    int data_size,
+    int fitnessFunction
 );
 #endif

@@ -1,5 +1,9 @@
 #include "../include/FitnessFunctionKernel.cuh"
 
+#ifndef max
+#define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
+#endif
+
 __global__ void calculate_fitness(
     float * dataWeights,
     float * mapWeights,
@@ -9,7 +13,8 @@ __global__ void calculate_fitness(
     int window_size,
     int node_number, 
     int population_size, 
-    int data_size
+    int data_size, 
+    int fitnessFunction
 ) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if(index >= population_size) return;
@@ -35,17 +40,21 @@ __global__ void calculate_fitness(
             for(int k = 0; k < node_number; ++k) {
                 x += mapWeights[j * node_number + k + node_number * node_number * index] * mapInput[k + index * node_number];
             }
-
+            
             float y = 1.0 / (1.0 + expf(-5 * x));
             float prediction_error = abs(y - data[window_size * node_number + i + j]);
-
+            if(fitnessFunction > 0)
+                prediction_error = 2.0f * prediction_error / (abs(y) + abs(data[window_size * node_number + i + j]));
             // TODO: experiment with percentage error
             // TODO: experiment with max percentage error
-            cumulative_error += prediction_error;
+            if(fitnessFunction != 2)
+                cumulative_error += prediction_error;
+            else 
+                cumulative_error = max(cumulative_error, prediction_error);
         }
         i += node_number;
     }
 
-    float epsilon = cumulative_error / ((node_number * data_size) - (node_number * window_size));
+    float epsilon = (fitnessFunction == 2) ? cumulative_error : cumulative_error / ((node_number * data_size) - (node_number * window_size));
     fitness[index] = 1.0 / (1.0 + epsilon);
 }

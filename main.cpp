@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <chrono> 
 #include <algorithm>
 
 #include "include/TimeSeriesPredictor.cuh"
@@ -13,19 +14,33 @@
 
 auto readDataToMemory(const std::string &path) -> std::vector<float>;
 void extractDataFromCsv(const std::string &path, std::vector<float> &data);
-void saveWeights(const std::vector<float> &weights);
+void saveWeights(const std::vector<float> &weights, std::string outFilename);
 auto normalizeData(std::vector<float> &data) -> void;
 auto usage(char * arg) -> void;
 
-int main(int argc, char ** argv) {
-    int nodes, populationSize, windowSize;
-    std::string dataPath, mode, weightsFilePath;
-    std::vector<float> weights;
 
-    if(argc != 6) {
-        usage(argv[0]);
-        return 1;
-    }
+// Main function takes parameters in the following shape if training
+// -> (string) mode (test or not test)
+// -> (int) WinSize
+// -> (string) data path
+// -> (int) FFunction, where 0 = abs, 1 = avg %, 2 = max %
+// -> (int) Population
+// -> (float) Pmutation
+// -> (float) Pcrossover
+// -> (string with extension) Filename
+
+// and if only testing 
+// -> (string) mode
+// -> (int) WinSize
+// -> (string) data path
+// -> (int) FFunction, where 0 = abs, 1 = avg %, 2 = max %
+// -> (string) weightsFilePath
+// -> (string) outFilename
+int main(int argc, char ** argv) {
+    int nodes, populationSize, windowSize, fitnessMode;
+    float pMutation, pCrossover;
+    std::string dataPath, mode, weightsFilePath, outFilename;
+    std::vector<float> weights;
 
     try {
         mode = std::string(argv[1]);
@@ -33,13 +48,31 @@ int main(int argc, char ** argv) {
         if(mode != "test" && mode != "train") {
             throw std::invalid_argument("Incorrect mode. Available options: test, train\n");
         }
-        
-        nodes = std::stoi(argv[2]);
-        windowSize = std::stoi(argv[3]);
-        dataPath = std::string(argv[4]);
 
-        if(mode == "train") populationSize = std::stoi(argv[5]);
-        else weightsFilePath = std::string(argv[5]);
+        // nodes have been hardcoded as the data is 3 dimensional 
+        nodes = 3;
+        windowSize = std::stoi(argv[2]);
+        dataPath = std::string(argv[3]);
+        fitnessMode = std::stoi(argv[4]);
+        
+        if(mode == "train") {
+            if(argc != 9) {
+                usage(argv[0]);
+                return 1;
+            }
+            pMutation = std::stof(argv[6]);
+            pCrossover = std::stof(argv[7]);
+            outFilename = std::string(argv[8]);
+            populationSize = std::stoi(argv[5]);
+        }
+        else {
+            if(argc != 7) {
+                usage(argv[0]);
+                return 1;
+            }
+            weightsFilePath = std::string(argv[5]);
+            outFilename = std::string(argv[6]);
+        }
 
     } catch(std::exception const & e) {
         usage(argv[0]);
@@ -49,17 +82,24 @@ int main(int argc, char ** argv) {
     std::cout << "Reading input data from " << dataPath << std::endl;
     auto timeSeries = readDataToMemory(dataPath);
     normalizeData(timeSeries);
-
+    std::ofstream file;
+    file.open (outFilename + ".results");
     if(mode == "test") {
         extractDataFromCsv(weightsFilePath, weights);
-
-        TimeSeriesTester tester(timeSeries, weights, nodes, windowSize);
-        float result = tester.test();
-        std::cout << "Result on test data: " << result << std::endl;
+        file << "======================Testing phase results: ============================\n" << std::endl;
+        TimeSeriesTester tester(timeSeries, weights, nodes, windowSize, fitnessMode, outFilename);
+        float result = tester.test(file);
+        file.close();
     } else {
-        TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize);
-        weights = predictor.train();
-        saveWeights(weights);
+        file << "======================Training phase results: ============================\n" << std::endl;
+        auto start = std::chrono::high_resolution_clock::now(); 
+        TimeSeriesPredictor predictor(timeSeries, nodes, populationSize, windowSize, fitnessMode, pMutation, pCrossover);
+        weights = predictor.train(file);
+        auto stop = std::chrono::high_resolution_clock::now(); 
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        file << "Training time: " << duration.count() << std::endl;
+        file.close();
+        saveWeights(weights, outFilename);
     }
 
     return 0;
@@ -120,9 +160,9 @@ auto readDataToMemory(const std::string &path) -> std::vector<float> {
     return data; 
 }
 
-void saveWeights(const std::vector<float> &weights) {
+void saveWeights(const std::vector<float> &weights, std::string outFilename) {
     std::ofstream file;
-    file.open ("./weights.csv");
+    file.open (outFilename + ".weights");
     
     for(auto weight: weights) {
         file << weight << std::endl;
@@ -130,5 +170,5 @@ void saveWeights(const std::vector<float> &weights) {
 
     file.close();
 
-    std::cout << "Weights saved to weights.csv file" << std::endl;
+    std::cout << "Weights saved to " << outFilename << " file" << std::endl;
 }
