@@ -17,7 +17,7 @@ TimeSeriesPredictor::~TimeSeriesPredictor() {
     gpuErrchk(cudaFree(this->mapWeightsGpu));
     gpuErrchk(cudaFree(this->dataGpu));
     gpuErrchk(cudaFree(this->mapInputGpu));
-    free(this->fitnessHost);
+    delete [] this->fitnessHost;
 }
 
 auto TimeSeriesPredictor::prepareGpuMemory() -> void {
@@ -27,9 +27,7 @@ auto TimeSeriesPredictor::prepareGpuMemory() -> void {
     gpuErrchk(cudaMalloc((void**)&this->mapWeightsGpu, this->populationSize * this->numberOfNodes * this->numberOfNodes * sizeof(float)));
     gpuErrchk(cudaMalloc((void**)&this->mapInputGpu, this->populationSize * this->numberOfNodes * sizeof(float)));
 
-    if((this->fitnessHost = (float *)malloc(this->populationSize * sizeof(float))) == NULL) {
-        std::cerr << "malloc\n";
-    }
+    this->fitnessHost = new float[this->populationSize];
     gpuErrchk(cudaMemcpy(this->dataGpu, this->data.data(), this->data.size() * sizeof(float), cudaMemcpyHostToDevice));
 }
 
