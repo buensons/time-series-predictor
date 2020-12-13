@@ -1,8 +1,9 @@
 #include "../include/TimeSeriesTester.h"
+#include <iostream>
 
 TimeSeriesTester::TimeSeriesTester(std::vector<float> data, std::vector<float> weights, int nodes, int windowSize) 
-    : dataWeights(data.begin(), data.begin() + nodes * windowSize), 
-      mapWeights(data.begin() + nodes * windowSize, data.end()) 
+    : dataWeights(weights.begin(), weights.begin() + nodes * windowSize), 
+      mapWeights(weights.begin() + nodes * windowSize, weights.end()) 
 {
     this->data = data;
     this->numberOfNodes = nodes;
