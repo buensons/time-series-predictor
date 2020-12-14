@@ -22,7 +22,7 @@ def main(data_path: str):
             os.system(
                 exec_train.format(
                     window_size=v[0],
-                    path=data_path + "/" + str(c),
+                    path=data_path + "Train/" + str(c),
                     fit=v[1],
                     population=v[2],
                     mut=v[3],
@@ -36,7 +36,7 @@ def main(data_path: str):
             os.system(
                 exec_test.format(
                     window_size=v[0],
-                    path=data_path + "/" + str(c),
+                    path=data_path + "Test/" + str(c),
                     fit=v[1],
                     weights=f"{c}_{k}.weights",
                     output=f"{c}_{k}"

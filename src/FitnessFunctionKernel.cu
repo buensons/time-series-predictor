@@ -1,9 +1,5 @@
 #include "../include/FitnessFunctionKernel.cuh"
 
-#ifndef max
-#define max( a, b ) ( ((a) > (b)) ? (a) : (b) )
-#endif
-
 __global__ void calculate_fitness(
     float * dataWeights,
     float * mapWeights,
@@ -43,8 +39,11 @@ __global__ void calculate_fitness(
             
             float y = 1.0 / (1.0 + expf(-5 * x));
             float prediction_error = abs(y - data[window_size * node_number + i + j]);
-            if(fitnessFunction > 0)
-                prediction_error = 2.0f * prediction_error / (abs(y) + abs(data[window_size * node_number + i + j]));
+
+            if(fitnessFunction > 0) {
+                float denominator = abs(y) + abs(data[window_size * node_number + i + j]);
+                prediction_error = denominator == 0.0 ? 0.0 : 2.0f * prediction_error / denominator;
+            }
             // TODO: experiment with percentage error
             // TODO: experiment with max percentage error
             if(fitnessFunction != 2)

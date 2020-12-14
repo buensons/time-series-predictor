@@ -117,7 +117,7 @@ auto TimeSeriesPredictor::crossover(Chromosome chr1, Chromosome chr2) -> std::ve
 
 auto TimeSeriesPredictor::mutate(Chromosome chr) -> Chromosome {
     for(int i = 0; i < chr.genes.size(); ++i) {
-        if(this->distribution(mt) < this->pCrossover) {
+        if(this->distribution(mt) < this->pMutation) {
             chr.genes[i] = distribution(mt) * 2 - 1;
         }
     }
@@ -145,7 +145,7 @@ auto TimeSeriesPredictor::tournamentSelection() -> std::vector<Chromosome> {
     std::vector<Chromosome> result;
     
     for(int i = 0; i < 2; ++i) {
-        auto tournamentPopulation = this->randomSampleFromPopulation(20);
+        auto tournamentPopulation = this->randomSampleFromPopulation(5);
         result.push_back(this->maxFitness(tournamentPopulation));
     }
     return result;
@@ -155,7 +155,7 @@ auto TimeSeriesPredictor::randomSampleFromPopulation(int size) -> std::vector<Ch
     std::vector<Chromosome> result;
 
     for(int i = 0; i < size; ++i) {
-        int r = distribution(mt) * this->populationSize;
+        int r = rand() % this->populationSize;
         result.push_back(this->population[r]);
     }
     return result;

@@ -44,8 +44,12 @@ auto TimeSeriesTester::test(std::ofstream &file) -> float {
             float y = 1.0 / (1.0 + std::exp(-5 * x));
             float prediction_error = std::abs(y - data[windowSize * numberOfNodes + i + j]);
             rmseScore += (y - data[windowSize * numberOfNodes + i + j]) * (y - data[windowSize * numberOfNodes + i + j]);
-            if(this->fitnessMode > 0)
-                prediction_error = 2.0f * prediction_error / (abs(y) + abs(data[windowSize * numberOfNodes + i + j]));
+
+            if(this->fitnessMode > 0) {
+                float denominator = std::abs(y) + std::abs(data[windowSize * numberOfNodes + i + j]);
+                prediction_error = denominator == 0.0 ? 0.0 : 2.0f * prediction_error / denominator;
+            }
+
             // TODO: experiment with percentage error
             // TODO: experiment with max percentage error
             if(this->fitnessMode != 2)
